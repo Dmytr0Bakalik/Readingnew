@@ -1,0 +1,760 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>BrainSpeed</title>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
+<script>pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js';</script>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{--bg:#0d0d0d;--card:#161616;--card2:#1e1e1e;--txt:#f0f0f0;--soft:#777;--pri:#F5A623;--ok:#22C55E;--err:#EF4444;--r:14px;--fs-read:17px;--fs-word:52px}
+body{font-family:'Nunito',sans-serif;background:var(--bg);min-height:100vh;display:flex;justify-content:center;color:var(--txt)}
+#app{width:100%;max-width:480px;min-height:100vh;background:var(--bg);display:flex;flex-direction:column;overflow-x:hidden}
+.screen{display:none;flex-direction:column;flex:1;padding-bottom:76px}
+.screen.active{display:flex}
+.hidden{display:none!important}
+
+/* TOP BAR */
+.gh{background:var(--card);padding:14px 18px;display:flex;align-items:center;gap:12px;border-bottom:1px solid #222;flex-shrink:0}
+.bk{width:36px;height:36px;border-radius:50%;background:#222;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:18px;color:var(--txt)}
+.ght{font-size:17px;font-weight:800}.badge{margin-left:auto;background:#222;color:var(--pri);padding:4px 12px;border-radius:20px;font-size:12px;font-weight:700}
+
+/* HOME HEADER */
+.home-hdr{padding:28px 20px 12px;background:linear-gradient(160deg,#1a0a00,#0d0d0d)}
+.home-hdr h1{font-size:30px;font-weight:900;background:linear-gradient(90deg,#F5A623,#f97316);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.home-hdr p{font-size:13px;color:var(--soft);margin-top:4px}
+
+/* CATEGORY */
+.cat{padding:18px 20px 8px}
+.cat-title{font-size:11px;font-weight:800;color:var(--soft);text-transform:uppercase;letter-spacing:2px;margin-bottom:12px}
+.cards{display:flex;flex-direction:column;gap:10px}
+
+/* GAME CARD */
+.gc{background:var(--card);border-radius:var(--r);padding:16px 18px;display:flex;align-items:center;gap:14px;cursor:pointer;border:none;width:100%;text-align:left;border:1px solid #222;transition:border-color .2s,transform .1s}
+.gc:active{transform:scale(.98)}.gc:hover{border-color:#333}
+.ci{width:48px;height:48px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:24px;flex-shrink:0}
+.ct{font-size:16px;font-weight:800;color:var(--txt)}.cd{font-size:12px;color:var(--soft);margin-top:2px}
+.arr{color:var(--soft);font-size:18px;margin-left:auto}
+
+/* BOTTOM NAV */
+#bnav{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:480px;background:var(--card);border-top:1px solid #222;display:flex;z-index:100}
+.nb{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;padding:11px 0 9px;background:none;border:none;cursor:pointer;color:var(--soft);font-family:'Nunito',sans-serif;font-size:10px;font-weight:700}
+.nb svg{width:22px;height:22px}.nb.active{color:var(--pri)}
+
+/* LIBRARY */
+.lib-upload{padding:20px}
+.file-lbl{display:flex;align-items:center;gap:10px;background:var(--pri);color:#000;font-weight:800;font-size:14px;padding:13px 20px;border-radius:var(--r);cursor:pointer;justify-content:center}
+.book-list{padding:0 20px;display:flex;flex-direction:column;gap:8px}
+.book-item{background:var(--card);border:1px solid #222;border-radius:var(--r);padding:14px 16px;display:flex;align-items:center;cursor:pointer;gap:12px;transition:border-color .2s}
+.book-item:hover{border-color:#444}
+.bi-icon{font-size:24px}.bi-title{font-size:15px;font-weight:800;flex:1}.bi-sub{font-size:11px;color:var(--soft);margin-top:2px}
+.bi-actions{display:flex;gap:6px}.bi-del{background:#2a1010;color:var(--err);border:none;border-radius:8px;padding:6px 10px;cursor:pointer;font-size:13px}
+.placeholder{padding:40px 20px;text-align:center;color:var(--soft);font-size:14px}
+
+/* RSVP READER */
+#rsvp-viewport{flex:1;display:flex;align-items:center;justify-content:center;position:relative;background:#000}
+#rsvp-word{font-size:var(--fs-word,52px);font-weight:900;color:var(--txt);text-align:center;padding:20px;letter-spacing:2px;line-height:1.2}
+.rsvp-footer{background:var(--card);padding:16px 20px;border-top:1px solid #222}
+.prog-bar{height:3px;background:#222;border-radius:2px;margin-bottom:14px;overflow:hidden}
+.prog-fill{height:100%;background:var(--pri);border-radius:2px;transition:width .1s linear}
+.ctrl-row{display:flex;align-items:center;justify-content:center;gap:12px}
+.ib{width:44px;height:44px;border-radius:50%;background:#222;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--txt);font-size:18px}
+.pb{width:60px;height:60px;border-radius:50%;background:var(--pri);border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:26px;color:#000}
+.wpm-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;font-size:13px;color:var(--soft)}
+.wpm-row strong{color:var(--pri)}
+input[type=range]{width:100%;accent-color:var(--pri);cursor:pointer;height:4px;margin:4px 0 10px}
+/* adj controls */
+.ctrl-label-row{display:flex;align-items:center;justify-content:space-between;margin:4px 0 4px}
+.ctrl-lbl{font-size:12px;color:var(--soft);font-weight:700;text-transform:uppercase;letter-spacing:1px}
+.adj-row{display:flex;align-items:center;gap:8px}
+.adj-btn{width:30px;height:30px;border-radius:8px;background:var(--card2);border:1px solid #333;color:var(--txt);font-size:18px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;line-height:1}
+.adj-btn:active{background:#333}
+.adj-val{font-size:14px;font-weight:800;color:var(--txt);min-width:70px;text-align:center}
+
+/* KARAOKE */
+#karaoke-text{flex:1;overflow-y:auto;padding:24px 20px;line-height:2;font-size:var(--fs-read,17px);color:var(--soft);scroll-behavior:smooth}
+.kw{cursor:pointer;border-radius:4px;padding:1px 2px;transition:color .08s;color:var(--soft)}
+.kw.kr{color:var(--soft);opacity:.7}.kw.ka{color:var(--txt);font-weight:900;background:rgba(245,166,35,.18);border-radius:4px}
+
+/* SCHULTE */
+#sch-timer{font-size:42px;font-weight:900;text-align:center;padding:10px 0}
+#sch-tgt{text-align:center;font-size:14px;color:var(--soft);margin-bottom:8px}
+#sch-tgt span{font-size:26px;font-weight:900;color:#F97316}
+#sch-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:5px;padding:0 14px}
+.sc{aspect-ratio:1;border-radius:10px;background:var(--card);border:1px solid #222;cursor:pointer;font-family:'Nunito',sans-serif;font-size:19px;font-weight:800;color:var(--txt);transition:all .15s}
+.sc.hit{background:var(--ok);color:#000;border-color:var(--ok)}
+.sc.miss{background:var(--err);border-color:var(--err);animation:shake .3s}
+#sch-res{text-align:center;padding:20px;display:none}
+
+/* TWIN */
+#tw-word{font-size:44px;font-weight:900;text-align:center;padding:20px;letter-spacing:3px;color:#8B5CF6}
+#tw-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;padding:0 18px}
+.twb{padding:16px;border-radius:14px;border:2px solid #333;background:var(--card);font-family:'Nunito',sans-serif;font-size:19px;font-weight:800;letter-spacing:2px;cursor:pointer;color:var(--txt);transition:all .15s}
+.twb.hit{background:#14532d;border-color:var(--ok);color:var(--ok)}
+.twb.miss{background:#450a0a;border-color:var(--err);color:var(--err);animation:shake .3s}
+#tw-fb{text-align:center;min-height:24px;font-size:15px;font-weight:700;padding:8px}
+
+/* NUMBER MEMORY */
+#nm-box{margin:14px 18px;background:linear-gradient(135deg,#1e3a8a,#3B82F6);border-radius:18px;padding:26px 18px;text-align:center;color:#fff}
+#nm-num{font-size:52px;font-weight:900;letter-spacing:8px;min-height:66px;display:flex;align-items:center;justify-content:center}
+#nm-in{margin:0 18px;background:var(--card);border-radius:14px;padding:16px;text-align:center;font-size:38px;font-weight:900;letter-spacing:6px;color:var(--txt);min-height:72px;border:2px solid #333;transition:border-color .3s}
+#nm-in.hit{border-color:var(--ok);color:var(--ok)}
+#nm-in.miss{border-color:var(--err);color:var(--err)}
+#nm-pad{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;padding:12px 18px}
+.kb{aspect-ratio:1.4;border-radius:12px;border:none;background:var(--card2);font-family:'Nunito',sans-serif;font-size:22px;font-weight:800;cursor:pointer;color:var(--txt);transition:transform .1s;border:1px solid #2a2a2a}
+.kb:active{transform:scale(.92)}.kb.del{background:#2a1010;color:var(--err)}.kb.ok{background:var(--pri);color:#000;font-size:14px}
+
+/* TEXT SEARCH */
+#ts-info{display:flex;justify-content:space-around;padding:10px 18px}
+.sb{text-align:center;background:var(--card);border-radius:10px;padding:10px 16px;border:1px solid #222}
+.sv{font-size:22px;font-weight:900}.sl{font-size:10px;color:var(--soft);font-weight:700}
+#ts-tgt{text-align:center;padding:10px;font-size:11px;color:var(--soft)}.tsw{font-size:32px;font-weight:900;color:#10B981;letter-spacing:2px}
+#ts-block{margin:8px 18px;background:var(--card);border-radius:14px;padding:16px;line-height:2;font-size:15px;border:1px solid #222;max-height:calc(100vh - 340px);overflow-y:auto}
+.sw{cursor:pointer;border-radius:3px;padding:1px 2px;transition:background .1s}
+.sw.hit{background:#052e16;color:var(--ok);font-weight:800}
+.sw.miss{background:#450a0a;color:var(--err);animation:shake .3s}
+
+/* SETTINGS */
+.si{background:var(--card);border-radius:var(--r);padding:14px 16px;display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;border:1px solid #222}
+.tog{width:44px;height:26px;border-radius:13px;background:#333;border:none;cursor:pointer;position:relative;flex-shrink:0;transition:background .2s}
+.tog::after{content:'';position:absolute;width:20px;height:20px;border-radius:50%;background:#fff;top:3px;left:3px;transition:left .2s}
+.tog.on{background:var(--pri)}.tog.on::after{left:21px}
+
+/* PROFILE */
+.phead{background:linear-gradient(135deg,#1a0a00,#0d0d0d);padding:28px 18px;text-align:center}
+.av{width:72px;height:72px;border-radius:50%;background:#222;margin:0 auto 12px;display:flex;align-items:center;justify-content:center;font-size:32px}
+.sgrid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;padding:18px}
+.sc2{background:var(--card);border-radius:var(--r);padding:16px;border:1px solid #222;text-align:center}
+.sc2 .ic{font-size:24px;margin-bottom:6px}.sc2 .vl{font-size:26px;font-weight:900}.sc2 .lb{font-size:11px;color:var(--soft);font-weight:700;margin-top:2px}
+
+@keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-7px)}75%{transform:translateX(7px)}}
+.win{text-align:center;padding:30px 18px}.win .em{font-size:56px;margin-bottom:10px}.win h2{font-size:22px;font-weight:900;margin-bottom:6px}.win p{color:var(--soft);margin-bottom:20px}
+.btn{background:var(--pri);color:#000;border:none;border-radius:var(--r);padding:13px 26px;font-family:'Nunito',sans-serif;font-size:15px;font-weight:800;cursor:pointer}
+select{border:none;font-family:Nunito;font-size:14px;font-weight:700;background:#222;color:var(--txt);padding:6px 10px;border-radius:8px;cursor:pointer}
+</style>
+</head>
+<body>
+<div id="app">
+
+<!-- ═══ HOME ═══ -->
+<div id="s-home" class="screen active">
+  <div class="home-hdr">
+    <h1>⚡ BrainSpeed</h1>
+    <p>Speed Reading & Brain Training — all in one place</p>
+  </div>
+
+  <div class="cat">
+    <div class="cat-title">📖 Reading Modes</div>
+    <div class="cards">
+      <button class="gc" onclick="nav('rsvp-lib')">
+        <div class="ci" style="background:#2a1500">⚡</div>
+        <div style="flex:1"><div class="ct">RSVP Speed Reader</div><div class="cd">Flash words at high speed — train focus</div></div>
+        <div class="arr">›</div>
+      </button>
+      <button class="gc" onclick="nav('karaoke-lib')">
+        <div class="ci" style="background:#0d2010"> </div>
+        <div style="flex:1"><div class="ct">Karaoke Reader</div><div class="cd">Follow the highlighted word through text</div></div>
+        <div class="arr">›</div>
+      </button>
+    </div>
+  </div>
+
+  <div class="cat">
+    <div class="cat-title">🧠 Brain Training</div>
+    <div class="cards">
+      <button class="gc" onclick="nav('schulte')">
+        <div class="ci" style="background:#2a1000">🔢</div>
+        <div style="flex:1"><div class="ct">Schulte Table</div><div class="cd">Find 1→25 in random grid as fast as possible</div></div>
+        <div class="arr">›</div>
+      </button>
+      <button class="gc" onclick="nav('twin')">
+        <div class="ci" style="background:#1a0a2e">🔤</div>
+        <div style="flex:1"><div class="ct">Twin Words</div><div class="cd">Spot the exact matching word in the grid</div></div>
+        <div class="arr">›</div>
+      </button>
+      <button class="gc" onclick="nav('mem')">
+        <div class="ci" style="background:#0a1a2e">🧩</div>
+        <div style="flex:1"><div class="ct">Number Memory</div><div class="cd">Memorize then type the hidden number</div></div>
+        <div class="arr">›</div>
+      </button>
+      <button class="gc" onclick="nav('search')">
+        <div class="ci" style="background:#052010">🔍</div>
+        <div style="flex:1"><div class="ct">Text Search</div><div class="cd">Find the target word hidden in the passage</div></div>
+        <div class="arr">›</div>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ RSVP LIBRARY ═══ -->
+<div id="s-rsvp-lib" class="screen">
+  <div class="gh"><button class="bk" onclick="nav('home')">←</button><span class="ght">RSVP Reader</span></div>
+  <div class="lib-upload">
+    <input type="file" id="rsvp-file" accept=".txt,.pdf" class="hidden">
+    <label for="rsvp-file" class="file-lbl">⚡ LOAD BOOK (.TXT / .PDF)</label>
+  </div>
+  <div id="rsvp-books" class="book-list"></div>
+</div>
+
+<!-- ═══ RSVP READER ═══ -->
+<div id="s-rsvp" class="screen" style="padding-bottom:0">
+  <div class="gh"><button class="bk" onclick="RSVP.close()">←</button><span class="ght" id="rsvp-title">Book</span><span class="badge" id="rsvp-badge">0%</span></div>
+  <div id="rsvp-viewport"><div id="rsvp-word">· · ·</div></div>
+  <div class="rsvp-footer">
+    <div class="prog-bar"><div class="prog-fill" id="rsvp-prog" style="width:0%"></div></div>
+    <div class="ctrl-label-row">
+      <span class="ctrl-lbl">Speed</span>
+      <div class="adj-row">
+        <button class="adj-btn" onclick="RSVP.adjWpm(-50)">−</button>
+        <span class="adj-val"><strong id="rsvp-wpm-lbl">300</strong> WPM</span>
+        <button class="adj-btn" onclick="RSVP.adjWpm(50)">+</button>
+      </div>
+    </div>
+    <input type="range" id="rsvp-wpm" min="60" max="2000" step="10" value="300" oninput="RSVP.setWpm(+this.value)">
+    <div class="ctrl-label-row">
+      <span class="ctrl-lbl">Words / flash</span>
+      <div class="adj-row">
+        <button class="adj-btn" onclick="RSVP.adjChunk(-1)">−</button>
+        <span class="adj-val"><strong id="rsvp-chunk-lbl">1</strong></span>
+        <button class="adj-btn" onclick="RSVP.adjChunk(1)">+</button>
+      </div>
+    </div>
+    <input type="range" id="rsvp-chunk" min="1" max="5" step="1" value="1" oninput="RSVP.setChunk(+this.value)">
+    <div class="ctrl-row" style="margin-top:10px">
+      <button class="ib" onclick="RSVP.jump(-100)">⏮</button>
+      <button class="ib" onclick="RSVP.jump(-1)">◀</button>
+      <button class="pb" id="rsvp-play" onclick="RSVP.togglePlay()">▶</button>
+      <button class="ib" onclick="RSVP.jump(1)">▶</button>
+      <button class="ib" onclick="RSVP.jump(100)">⏭</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ KARAOKE LIBRARY ═══ -->
+<div id="s-karaoke-lib" class="screen">
+  <div class="gh"><button class="bk" onclick="nav('home')">←</button><span class="ght">Karaoke Reader</span></div>
+  <div class="lib-upload">
+    <input type="file" id="kar-file" accept=".txt,.pdf" class="hidden">
+    <label for="kar-file" class="file-lbl"> LOAD BOOK (.TXT / .PDF)</label>
+  </div>
+  <div id="kar-books" class="book-list"></div>
+</div>
+
+<!-- ═══ KARAOKE READER ═══ -->
+<div id="s-karaoke" class="screen">
+  <div class="gh"><button class="bk" onclick="KAR.close()">←</button><span class="ght" id="kar-title">Book</span><span class="badge" id="kar-badge">250 WPM</span></div>
+  <div id="karaoke-text"></div>
+  <div class="rsvp-footer">
+    <div class="prog-bar"><div class="prog-fill" id="kar-prog" style="width:0%"></div></div>
+
+    <!-- WPM control -->
+    <div class="ctrl-label-row">
+      <span class="ctrl-lbl">Speed</span>
+      <div class="adj-row">
+        <button class="adj-btn" onclick="KAR.adjWpm(-50)">−</button>
+        <span class="adj-val"><strong id="kar-wpm-lbl">250</strong> WPM</span>
+        <button class="adj-btn" onclick="KAR.adjWpm(50)">+</button>
+      </div>
+    </div>
+    <input type="range" id="kar-wpm" min="60" max="2000" step="10" value="250" oninput="KAR.setWpm(+this.value)">
+
+    <!-- Words control -->
+    <div class="ctrl-label-row" style="margin-top:8px">
+      <span class="ctrl-lbl">Words at once</span>
+      <div class="adj-row">
+        <button class="adj-btn" onclick="KAR.adjChunk(-1)">−</button>
+        <span class="adj-val"><strong id="kar-chunk-lbl">1</strong></span>
+        <button class="adj-btn" onclick="KAR.adjChunk(1)">+</button>
+      </div>
+    </div>
+    <input type="range" id="kar-chunk" min="1" max="10" step="1" value="1" oninput="KAR.setChunk(+this.value)">
+
+    <div class="ctrl-row" style="margin-top:12px">
+      <button class="ib" onclick="KAR.reset()">⏮</button>
+      <button class="pb" id="kar-play" onclick="KAR.togglePlay()">▶</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ SCHULTE ═══ -->
+<div id="s-schulte" class="screen">
+  <div class="gh"><button class="bk" onclick="goBack('schulte')">←</button><span class="ght">Schulte Table</span><span class="badge" id="sch-badge">Ready</span></div>
+  <div id="sch-timer">0.0</div>
+  <div id="sch-tgt">Find: <span id="sch-next">1</span></div>
+  <div id="sch-grid"></div>
+  <div id="sch-res"></div>
+</div>
+
+<!-- ═══ TWIN WORDS ═══ -->
+<div id="s-twin" class="screen">
+  <div class="gh"><button class="bk" onclick="nav('home')">←</button><span class="ght">Twin Words</span><span class="badge" id="tw-badge">0</span></div>
+  <div id="tw-word"></div>
+  <div id="tw-fb"></div>
+  <div id="tw-grid"></div>
+</div>
+
+<!-- ═══ NUMBER MEMORY ═══ -->
+<div id="s-mem" class="screen">
+  <div class="gh"><button class="bk" onclick="goBack('mem')">←</button><span class="ght">Number Memory</span><span class="badge" id="nm-badge">Lv 1</span></div>
+  <div style="text-align:center;padding:8px;font-size:13px;color:var(--soft)">Level <strong id="nm-lv" style="color:#3B82F6">1</strong> — <span id="nm-dg">3</span> digits</div>
+  <div id="nm-box"><div id="nm-num">···</div><div id="nm-hint" style="font-size:13px;opacity:.8;margin-top:8px">Get ready…</div></div>
+  <div id="nm-in">·</div>
+  <div id="nm-pad"></div>
+</div>
+
+<!-- ═══ TEXT SEARCH ═══ -->
+<div id="s-search" class="screen">
+  <div class="gh"><button class="bk" onclick="goBack('search')">←</button><span class="ght">Text Search</span><span class="badge" id="ts-badge">Rd 1</span></div>
+  <div id="ts-info">
+    <div class="sb"><div class="sv" id="ts-sc">0</div><div class="sl">Score</div></div>
+    <div class="sb"><div class="sv" id="ts-tm">0.0</div><div class="sl">Sec</div></div>
+    <div class="sb"><div class="sv" id="ts-rn">1</div><div class="sl">Round</div></div>
+  </div>
+  <div id="ts-tgt"><div style="margin-bottom:4px;font-size:12px;color:var(--soft)">Find:</div><div class="tsw" id="ts-tw">—</div></div>
+  <div id="ts-block"></div>
+</div>
+
+<!-- ═══ SETTINGS ═══ -->
+<div id="s-settings" class="screen">
+  <div class="gh"><span class="ght">⚙️ Settings</span></div>
+  <div style="padding:16px;display:flex;flex-direction:column;gap:10px">
+
+    <!-- THEME -->
+    <div style="font-size:11px;font-weight:800;color:var(--soft);text-transform:uppercase;letter-spacing:2px;margin-bottom:4px">Appearance</div>
+    <div class="si" style="flex-direction:column;align-items:flex-start;gap:12px">
+      <div style="font-size:15px;font-weight:800">Theme</div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap">
+        <button class="theme-btn active" data-theme="dark" onclick="applyTheme('dark')" style="background:#0d0d0d;color:#f0f0f0;border:2px solid #F5A623;border-radius:10px;padding:8px 16px;font-family:Nunito;font-size:13px;font-weight:800;cursor:pointer">🌑 Dark</button>
+        <button class="theme-btn" data-theme="light" onclick="applyTheme('light')" style="background:#fafaf8;color:#1a1a1a;border:2px solid #ccc;border-radius:10px;padding:8px 16px;font-family:Nunito;font-size:13px;font-weight:800;cursor:pointer">☀️ Light</button>
+        <button class="theme-btn" data-theme="sepia" onclick="applyTheme('sepia')" style="background:#f4ecd8;color:#5c4a32;border:2px solid #c8a96e;border-radius:10px;padding:8px 16px;font-family:Nunito;font-size:13px;font-weight:800;cursor:pointer">📖 Sepia</button>
+        <button class="theme-btn" data-theme="night" onclick="applyTheme('night')" style="background:#0a0e1a;color:#e0e7ff;border:2px solid #3b4aba;border-radius:10px;padding:8px 16px;font-family:Nunito;font-size:13px;font-weight:800;cursor:pointer">🎦 Night</button>
+      </div>
+    </div>
+
+    <!-- FONT SIZE -->
+    <div style="font-size:11px;font-weight:800;color:var(--soft);text-transform:uppercase;letter-spacing:2px;margin-bottom:4px">Reading</div>
+    <div class="si" style="flex-direction:column;align-items:flex-start;gap:10px">
+      <div style="display:flex;justify-content:space-between;width:100%">
+        <div style="font-size:15px;font-weight:800">Text Size</div>
+        <strong id="fs-lbl" style="color:var(--pri)">17</strong>
+      </div>
+      <input type="range" id="fs-slider" min="12" max="32" step="1" value="17" style="width:100%;accent-color:var(--pri)" oninput="setFontSize(+this.value)">
+    </div>
+    <div class="si" style="flex-direction:column;align-items:flex-start;gap:10px">
+      <div style="display:flex;justify-content:space-between;width:100%">
+        <div style="font-size:15px;font-weight:800">RSVP Word Size</div>
+        <strong id="ws-lbl" style="color:var(--pri)">52</strong>
+      </div>
+      <input type="range" id="ws-slider" min="24" max="96" step="2" value="52" style="width:100%;accent-color:var(--pri)" oninput="setWordSize(+this.value)">
+    </div>
+
+    <!-- GAME SETTINGS -->
+    <div style="font-size:11px;font-weight:800;color:var(--soft);text-transform:uppercase;letter-spacing:2px;margin-bottom:4px">Memory Game</div>
+    <div class="si"><div><div style="font-size:15px;font-weight:800">Starting Digits</div><div style="font-size:12px;color:var(--soft)">Digit count at Level 1</div></div>
+      <select id="nm-start" style="background:var(--card2);color:var(--txt)"><option value="3">3</option><option value="4">4</option><option value="5">5</option></select></div>
+
+    <div style="margin-top:8px"><button class="btn" style="width:100%;padding:14px" onclick="if(confirm('Reset all?')){localStorage.removeItem('bs_p');renderP();alert('Done!')}">&#x1f504; Reset All Progress</button></div>
+  </div>
+</div>
+
+<!-- ═══ PROFILE ═══ -->
+<div id="s-profile" class="screen">
+  <div class="phead"><div class="av">🧠</div><h2 style="font-size:22px;font-weight:900">Brain Athlete</h2><p style="font-size:13px;color:var(--soft);margin-top:4px">Keep training daily!</p></div>
+  <div class="sgrid">
+    <div class="sc2"><div class="ic" style="color:#F97316">⏱</div><div class="vl" id="prf-sch">—</div><div class="lb">Best Schulte (s)</div></div>
+    <div class="sc2"><div class="ic" style="color:#8B5CF6">🔤</div><div class="vl" id="prf-tw">0</div><div class="lb">Best Twin Score</div></div>
+    <div class="sc2"><div class="ic" style="color:#3B82F6">🧩</div><div class="vl" id="prf-nm">3</div><div class="lb">Memory Digits</div></div>
+    <div class="sc2"><div class="ic" style="color:#10B981">🔍</div><div class="vl" id="prf-ts">0</div><div class="lb">Search Score</div></div>
+    <div class="sc2" style="grid-column:1/-1"><div class="ic">🔥</div><div class="vl" id="prf-games">0</div><div class="lb">Games Played</div></div>
+  </div>
+</div>
+
+</div><!-- #app -->
+
+<div id="bnav">
+  <button class="nb active" id="nb-home" onclick="nav('home')">
+    <svg viewBox="0 0 24 24" fill="currentColor"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>Home
+  </button>
+  <button class="nb" id="nb-settings" onclick="nav('settings')">
+    <svg viewBox="0 0 24 24" fill="currentColor"><path d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94L14.4 2.81c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41L9.25 5.35C8.66 5.59 8.12 5.92 7.63 6.29L5.24 5.33c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.22-.07.47.12.61l2.03 1.58C4.84 11.36 4.8 11.69 4.8 12s.02.64.07.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"/></svg>Settings
+  </button>
+  <button class="nb" id="nb-profile" onclick="nav('profile')">
+    <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>Profile
+  </button>
+</div>
+
+<script>
+// ── CORE NAV ─────────────────────────────────────────
+const ALL=['home','rsvp-lib','rsvp','karaoke-lib','karaoke','schulte','twin','mem','search','settings','profile'];
+function nav(id){
+  ALL.forEach(s=>{const e=document.getElementById('s-'+s);if(e)e.classList.remove('active');});
+  document.getElementById('s-'+id).classList.add('active');
+  ['home','settings','profile'].forEach(n=>document.getElementById('nb-'+n).classList.toggle('active',n===id));
+  // Hide bottom nav in reader screens (they have their own footer)
+  const readerScreens=['rsvp','karaoke'];
+  document.getElementById('bnav').style.display=readerScreens.includes(id)?'none':'flex';
+  if(id==='schulte')Sch.init();
+  if(id==='twin')TW.init();
+  if(id==='mem')NM.init();
+  if(id==='search')TS.init();
+  if(id==='profile')renderP();
+  if(id==='rsvp-lib')renderLib('rsvp');
+  if(id==='karaoke-lib')renderLib('karaoke');
+}
+function goBack(g){
+  if(g==='schulte')Sch.stop();
+  if(g==='mem')NM.stop();
+  if(g==='search')TS.stop();
+  nav('home');
+}
+
+// ── PROFILE ──────────────────────────────────────────
+function lp(){return JSON.parse(localStorage.getItem('bs_p')||JSON.stringify({sch:null,tw:0,nm:3,ts:0,games:0}));}
+function sp(p){localStorage.setItem('bs_p',JSON.stringify(p));}
+function renderP(){const p=lp();document.getElementById('prf-sch').textContent=p.sch?p.sch+'s':'—';document.getElementById('prf-tw').textContent=p.tw;document.getElementById('prf-nm').textContent=p.nm;document.getElementById('prf-ts').textContent=p.ts;document.getElementById('prf-games').textContent=p.games;}
+
+// ── SHARED LIBRARY ────────────────────────────────────
+let sharedLib=JSON.parse(localStorage.getItem('bs_lib')||'[]');
+function saveLib(){localStorage.setItem('bs_lib',JSON.stringify(sharedLib.map(b=>({id:b.id,title:b.title,content:b.content}))));}
+
+async function extractText(file){
+  const isPdf=file.name.toLowerCase().endsWith('.pdf');
+  if(!isPdf) return await file.text();
+  const pdf=await pdfjsLib.getDocument({data:new Uint8Array(await file.arrayBuffer())}).promise;
+  let txt='';
+  for(let i=1;i<=pdf.numPages;i++){
+    const pg=await pdf.getPage(i);const tc=await pg.getTextContent();
+    let ly=-1,pt='';
+    tc.items.forEach(it=>{if(ly!==-1){const d=Math.abs(it.transform[5]-ly);pt+=d>12?'\n\n':d>4?' ':' ';}pt+=it.str;ly=it.transform[5];});
+    txt+=pt+'\n\n';
+  }
+  return txt;
+}
+
+function renderLib(mode){
+  const id=mode==='rsvp'?'rsvp-books':'kar-books';
+  const el=document.getElementById(id); el.innerHTML='';
+  if(!sharedLib.length){el.innerHTML='<div class="placeholder">No books yet. Load a .TXT or .PDF file.</div>';return;}
+  sharedLib.forEach(book=>{
+    const div=document.createElement('div');div.className='book-item';
+    div.innerHTML=`<span class="bi-icon">${mode==='rsvp'?'⚡':' '}</span><div style="flex:1"><div class="bi-title">${book.title}</div><div class="bi-sub">${book.content.trim().split(/\s+/).length} words</div></div><button class="bi-del" data-id="${book.id}">🗑</button>`;
+    div.querySelector('.bi-del').onclick=(e)=>{e.stopPropagation();if(confirm('Delete?')){sharedLib=sharedLib.filter(b=>b.id!==book.id);saveLib();renderLib(mode);}};
+    div.onclick=(e)=>{if(e.target.classList.contains('bi-del'))return;if(mode==='rsvp')RSVP.open(book);else KAR.open(book);};
+    el.appendChild(div);
+  });
+}
+
+// File upload handlers
+document.getElementById('rsvp-file').addEventListener('change',async e=>{
+  const f=e.target.files[0];if(!f)return;
+  const txt=await extractText(f);
+  sharedLib.unshift({id:Date.now(),title:f.name.replace(/\.(txt|pdf)$/i,''),content:txt});
+  saveLib();renderLib('rsvp');e.target.value='';
+});
+document.getElementById('kar-file').addEventListener('change',async e=>{
+  const f=e.target.files[0];if(!f)return;
+  const txt=await extractText(f);
+  sharedLib.unshift({id:Date.now(),title:f.name.replace(/\.(txt|pdf)$/i,''),content:txt});
+  saveLib();renderLib('karaoke');e.target.value='';
+});
+
+// ── RSVP ENGINE ──────────────────────────────────────
+const RSVP={
+  words:[],idx:0,playing:false,timer:null,wpm:300,chunk:1,
+  open(book){
+    document.getElementById('rsvp-title').textContent=book.title;
+    this.words=book.content.trim().split(/\s+/).filter(w=>w.length>0);
+    this.idx=0;this.wpm=300;this.chunk=1;this.playing=false;
+    document.getElementById('rsvp-wpm').value=300;
+    document.getElementById('rsvp-chunk').value=1;
+    document.getElementById('rsvp-wpm-lbl').textContent=300;
+    document.getElementById('rsvp-chunk-lbl').textContent=1;
+    document.getElementById('rsvp-play').textContent='▶';
+    this.render();nav('rsvp');
+  },
+  render(){
+    const chunk=this.words.slice(this.idx,this.idx+this.chunk);
+    document.getElementById('rsvp-word').textContent=chunk.join(' ')||'—';
+    const pct=Math.round((this.idx/Math.max(1,this.words.length-1))*100);
+    document.getElementById('rsvp-prog').style.width=pct+'%';
+    document.getElementById('rsvp-badge').textContent=pct+'%';
+  },
+  advance(){
+    if(this.idx+this.chunk>=this.words.length){this.stop();return;}
+    this.idx+=this.chunk;this.render();
+  },
+  start(){
+    if(this.words.length===0)return;
+    this.playing=true;document.getElementById('rsvp-play').textContent='⏸';
+    clearInterval(this.timer);
+    this.timer=setInterval(()=>this.advance(),Math.round(60000/this.wpm));
+  },
+  stop(){
+    this.playing=false;document.getElementById('rsvp-play').textContent='▶';
+    clearInterval(this.timer);
+  },
+  togglePlay(){if(this.playing)this.stop();else this.start();},
+  jump(n){this.idx=Math.max(0,Math.min(this.idx+n,this.words.length-1));this.render();},
+  setWpm(v){this.wpm=Math.max(60,Math.min(2000,v));document.getElementById('rsvp-wpm').value=this.wpm;document.getElementById('rsvp-wpm-lbl').textContent=this.wpm;if(this.playing){this.stop();this.start();}},
+  adjWpm(d){this.setWpm(this.wpm+d);},
+  setChunk(v){this.chunk=Math.max(1,Math.min(5,v));document.getElementById('rsvp-chunk').value=this.chunk;document.getElementById('rsvp-chunk-lbl').textContent=this.chunk;this.render();},
+  adjChunk(d){this.setChunk(this.chunk+d);},
+  close(){this.stop();nav('rsvp-lib');}
+};
+document.getElementById('rsvp-wpm').addEventListener('input',e=>RSVP.setWpm(+e.target.value));
+document.getElementById('rsvp-chunk').addEventListener('input',e=>RSVP.setChunk(+e.target.value));
+
+// ── KARAOKE ENGINE ────────────────────────────────────
+const KAR={
+  words:[],idx:0,playing:false,timer:null,wpm:250,chunk:1,
+  open(book){
+    document.getElementById('kar-title').textContent=book.title;
+    document.getElementById('kar-wpm').value=250;
+    document.getElementById('kar-chunk').value=1;
+    document.getElementById('kar-wpm-lbl').textContent=250;
+    document.getElementById('kar-chunk-lbl').textContent=1;
+    document.getElementById('kar-play').textContent='▶';
+    this.wpm=250;this.chunk=1;this.idx=0;this.playing=false;
+    this.build(book.content);nav('karaoke');
+  },
+  build(text){
+    const ct=document.getElementById('karaoke-text');ct.innerHTML='';
+    this.words=[];
+    text.replace(/\r\n/g,'\n').split(/\n\s*\n/).forEach(para=>{
+      const ws=para.trim().split(/\s+/).filter(w=>w.length>0);if(!ws.length)return;
+      const p=document.createElement('p');p.style.cssText='margin:0 0 1.2em';
+      ws.forEach((w,i)=>{
+        const sp=document.createElement('span');sp.className='kw';sp.textContent=w;sp.dataset.i=this.words.length;
+        sp.onclick=()=>this.jumpTo(+sp.dataset.i);
+        this.words.push(sp);p.appendChild(sp);if(i<ws.length-1)p.appendChild(document.createTextNode(' '));
+      });ct.appendChild(p);
+    });
+  },
+  highlight(idx){
+    if(idx<0||idx>=this.words.length)return;
+    for(let i=Math.max(0,idx-this.chunk);i<idx;i++){if(this.words[i]){this.words[i].classList.remove('ka');this.words[i].classList.add('kr');}}
+    for(let i=idx;i<Math.min(idx+this.chunk,this.words.length);i++){if(this.words[i]){this.words[i].classList.remove('kr');this.words[i].classList.add('ka');}}
+    this.words[idx].scrollIntoView({behavior:'smooth',block:'center'});
+    const pct=Math.round((idx/Math.max(1,this.words.length-1))*100);
+    document.getElementById('kar-prog').style.width=pct+'%';
+  },
+  jumpTo(idx){this.words.forEach((w,i)=>{w.classList.remove('ka','kr');if(i<idx)w.classList.add('kr');});this.idx=Math.max(0,Math.min(idx,this.words.length-1));this.highlight(this.idx);},
+  advance(){if(this.idx+this.chunk>=this.words.length){this.stop();return;}this.idx+=this.chunk;this.highlight(this.idx);},
+  start(){if(!this.words.length)return;this.playing=true;document.getElementById('kar-play').textContent='⏸';clearInterval(this.timer);this.timer=setInterval(()=>this.advance(),Math.round(60000/this.wpm));},
+  stop(){this.playing=false;document.getElementById('kar-play').textContent='▶';clearInterval(this.timer);},
+  togglePlay(){if(this.playing)this.stop();else this.start();},
+  reset(){this.stop();this.jumpTo(0);},
+  setWpm(v){this.wpm=Math.max(60,Math.min(2000,v));document.getElementById('kar-wpm').value=this.wpm;document.getElementById('kar-wpm-lbl').textContent=this.wpm;document.getElementById('kar-badge').textContent=this.wpm+' WPM';if(this.playing){this.stop();this.start();}},
+  adjWpm(d){this.setWpm(this.wpm+d);},
+  setChunk(v){this.chunk=Math.max(1,Math.min(10,v));document.getElementById('kar-chunk').value=this.chunk;document.getElementById('kar-chunk-lbl').textContent=this.chunk;},
+  adjChunk(d){this.setChunk(this.chunk+d);},
+  close(){this.stop();nav('karaoke-lib');}
+};
+document.getElementById('kar-wpm').addEventListener('input',e=>KAR.setWpm(+e.target.value));
+document.getElementById('kar-chunk').addEventListener('input',e=>KAR.setChunk(+e.target.value));
+
+// ── SCHULTE ──────────────────────────────────────────
+const Sch={
+  next:1,el:0,iv:null,going:false,
+  init(){
+    this.next=1;this.el=0;this.going=false;clearInterval(this.iv);
+    document.getElementById('sch-timer').textContent='0.0';
+    document.getElementById('sch-next').textContent='1';
+    document.getElementById('sch-badge').textContent='Ready';
+    document.getElementById('sch-tgt').style.display='';
+    document.getElementById('sch-res').style.display='none';
+    const g=document.getElementById('sch-grid');g.innerHTML='';
+    const n=Array.from({length:25},(_,i)=>i+1);
+    for(let i=24;i>0;i--){const j=Math.floor(Math.random()*(i+1));[n[i],n[j]]=[n[j],n[i]];}
+    n.forEach(v=>{const b=document.createElement('button');b.className='sc';b.textContent=v;b.onclick=()=>this.click(v,b);g.appendChild(b);});
+  },
+  click(n,btn){
+    if(!this.going){this.going=true;document.getElementById('sch-badge').textContent='⏱';this.iv=setInterval(()=>{this.el=+(this.el+.1).toFixed(1);document.getElementById('sch-timer').textContent=this.el.toFixed(1);},100);}
+    if(n===this.next){btn.classList.add('hit');btn.disabled=true;this.next++;document.getElementById('sch-next').textContent=this.next;if(this.next>25)this.win();}
+    else{btn.classList.add('miss');setTimeout(()=>btn.classList.remove('miss'),400);}
+  },
+  win(){
+    clearInterval(this.iv);const t=this.el;const p=lp();const best=!p.sch||t<p.sch;
+    if(best){p.sch=t;p.games=(p.games||0)+1;sp(p);}
+    document.getElementById('sch-tgt').style.display='none';
+    document.getElementById('sch-res').style.display='block';
+    document.getElementById('sch-res').innerHTML=`<div class="win"><div class="em">🎉</div><h2>Done!</h2><p>Time: <strong>${t.toFixed(1)}s</strong>${best?' 🏆 New Best!':''}</p><button class="btn" onclick="Sch.init();document.getElementById('sch-tgt').style.display=''">Try Again</button></div>`;
+  },
+  stop(){clearInterval(this.iv);}
+};
+
+// ── TWIN WORDS ───────────────────────────────────────
+const TW={
+  score:0,
+  data:[
+    {t:'FORM',o:['FIRM','FARM','FORM','FORK','FORE','FORT']},{t:'BEAR',o:['BEER','BEAT','BEAR','BEAN','BEAD','BEAM']},
+    {t:'SHIP',o:['SKIP','SLIP','SPIT','SHIP','SHIN','WHIP']},{t:'WORD',o:['WORE','WORM','WARD','WORK','WORD','WORN']},
+    {t:'MIND',o:['MINE','MILD','MINT','MIND','MINI','MINK']},{t:'TRAP',o:['TRIP','TRAY','TRIM','TRAP','TRAM','TREE']},
+    {t:'GLOW',o:['FLOW','SLOW','GLOW','GROW','BLOW','GLOB']},{t:'DARK',o:['BARK','DARE','LARK','DARK','DART','DANK']},
+    {t:'STAR',o:['SCAR','STIR','STAR','SPAR','SOAR','STAY']},{t:'JUMP',o:['PUMP','LUMP','BUMP','JUMP','DUMP','HUMP']},
+    {t:'MOON',o:['MOAN','NOON','MOON','BOON','LOON','SOON']},{t:'FIVE',o:['FIRE','FINE','FIVE','FIFE','FIND','HIRE']},
+    {t:'FROG',o:['FROM','FROG','GROG','PROG','FROE','PROM']},{t:'LAKE',o:['FAKE','BAKE','LAME','LAKE','LANE','TAKE']},
+    {t:'PLAN',o:['CLAN','PLEA','FLAG','PLAN','PLAY','FLAT']},
+  ],cur:null,
+  init(){this.score=0;document.getElementById('tw-badge').textContent='0';document.getElementById('tw-fb').textContent='';this.next();},
+  next(){
+    this.cur=this.data[Math.floor(Math.random()*this.data.length)];
+    document.getElementById('tw-word').textContent=this.cur.t;document.getElementById('tw-fb').textContent='';
+    const g=document.getElementById('tw-grid');g.innerHTML='';
+    [...this.cur.o].sort(()=>Math.random()-.5).forEach(w=>{
+      const b=document.createElement('button');b.className='twb';b.textContent=w;b.onclick=()=>this.check(w,b);g.appendChild(b);
+    });
+  },
+  check(w,btn){
+    document.querySelectorAll('.twb').forEach(b=>b.disabled=true);
+    const fb=document.getElementById('tw-fb');
+    if(w===this.cur.t){
+      btn.classList.add('hit');fb.textContent='✅ Correct!';fb.style.color='var(--ok)';this.score++;
+      document.getElementById('tw-badge').textContent=this.score;
+      const p=lp();if(this.score>p.tw){p.tw=this.score;p.games=(p.games||0)+1;sp(p);}
+      setTimeout(()=>this.next(),700);
+    } else {
+      btn.classList.add('miss');fb.textContent='❌ Wrong!';fb.style.color='var(--err)';
+      document.querySelectorAll('.twb').forEach(b=>{if(b.textContent===this.cur.t)b.classList.add('hit');});
+      this.score=0;document.getElementById('tw-badge').textContent='0';setTimeout(()=>this.next(),1200);
+    }
+  }
+};
+
+// ── NUMBER MEMORY ─────────────────────────────────────
+const NM={
+  lv:1,dg:3,num:'',inp:'',phase:'show',timer:null,
+  init(){
+    this.lv=1;this.dg=+document.getElementById('nm-start').value;this.inp='';this.buildPad();this.round();
+  },
+  round(){
+    this.inp='';this.phase='show';
+    document.getElementById('nm-lv').textContent=this.lv;document.getElementById('nm-dg').textContent=this.dg;document.getElementById('nm-badge').textContent='Lv '+this.lv;
+    this.num=this.gen(this.dg);
+    const nm=document.getElementById('nm-num'),hi=document.getElementById('nm-hint'),inp=document.getElementById('nm-in');
+    inp.className='';inp.textContent='·';nm.textContent=this.num;hi.textContent=`Hiding in ${Math.max(2,this.dg)}s…`;
+    this.timer=setTimeout(()=>{nm.textContent='★'.repeat(this.dg);hi.textContent='Type what you saw:';this.phase='input';},Math.max(2000,this.dg*700));
+  },
+  gen(n){let s='';for(let i=0;i<n;i++)s+=(i===0?Math.ceil(Math.random()*9):Math.floor(Math.random()*10));return s;},
+  press(k){
+    if(this.phase!=='input')return;
+    const inp=document.getElementById('nm-in');inp.className='';
+    if(k==='del')this.inp=this.inp.slice(0,-1);
+    else if(k==='ok'){this.submit();return;}
+    else{if(this.inp.length>=this.dg)return;this.inp+=k;}
+    inp.textContent=this.inp||'·';
+  },
+  submit(){
+    if(!this.inp)return;
+    const inp=document.getElementById('nm-in');
+    if(this.inp===this.num){
+      inp.classList.add('hit');inp.textContent='✓ '+this.inp;this.lv++;this.dg++;
+      const p=lp();if(this.dg-1>p.nm){p.nm=this.dg-1;p.games=(p.games||0)+1;sp(p);}
+      setTimeout(()=>this.round(),1000);
+    } else {
+      inp.classList.add('miss');inp.textContent='✗ Was: '+this.num;setTimeout(()=>this.init(),1800);
+    }
+  },
+  buildPad(){
+    const pad=document.getElementById('nm-pad');pad.innerHTML='';
+    ['1','2','3','4','5','6','7','8','9','del','0','ok'].forEach(k=>{
+      const b=document.createElement('button');b.className='kb'+(k==='del'?' del':k==='ok'?' ok':'');b.textContent=k==='del'?'⌫':k==='ok'?'OK ✓':k;b.onclick=()=>this.press(k);pad.appendChild(b);
+    });
+  },
+  stop(){clearTimeout(this.timer);}
+};
+
+// ── TEXT SEARCH ───────────────────────────────────────
+const TS={
+  round:1,score:0,el:0,iv:null,cur:null,
+  passages:[
+    {w:'ocean',t:'The morning light filtered through the curtains onto the floor. She walked to the window and gazed where the sky met the ocean in a seamless line of blue. Seagulls called in the distance carried on a salty breeze. She had always loved the ocean, the way it moved and breathed like a living thing full of mystery.'},
+    {w:'spark',t:'He turned the key and waited. The engine coughed twice then caught with a low rumble. A single spark from the old ignition set the whole machine into motion. Oil cans and tools hung in neat rows. He noted the spark plug would need replacing soon and smiled as he revved the engine gently in the quiet garage.'},
+    {w:'cloud',t:'From the mountain summit the world below disappeared beneath a thick white cloud. Hikers who had made the climb that morning were rewarded with the strange sensation of standing above everything. Another cloud drifted past, wrapping them in cool mist. The sun above remained brilliant and the cloud line drifted slowly eastward.'},
+    {w:'bridge',t:'The old stone bridge had stood for three hundred years. Farmers crossed it with their carts, soldiers marched over it during wars. Now a new bridge was being built nearby but the townspeople refused to demolish the original. A local artist had painted the bridge many times over the years capturing its beauty in every season.'},
+    {w:'thunder',t:'The storm arrived without warning. First came the wind bending the trees sideways then great flashes lit the dark sky. The thunder followed seconds later rolling across the valley in deep waves that rattled window panes. Children pressed faces to the glass. Another crack of thunder shook the house as the lights flickered and went out.'},
+    {w:'silver',t:'The old jeweler kept the finest pieces in a locked glass case. Among them sat a ring of polished silver thin as a whisper, set with a pale blue stone. Many had admired it over the years. The jeweler believed the silver ring was waiting for the right person and he was content to wait as long as it took.'},
+    {w:'hollow',t:'The path wound deep into the forest where the old oak stood. Its massive trunk had grown hollow over centuries, forming a chamber just wide enough to step inside. Children from the village used to dare each other to spend a night there. The hollow had a reputation for strange sounds and mysterious lights after dark.'},
+    {w:'amber',t:'The afternoon light turned amber as the sun descended behind the hills. Long amber shadows stretched across the meadow touching the edge of the woods. She sat on the old fence post and watched as the amber glow deepened into a rich gold and finally faded to a soft violet that promised evening was near.'},
+  ],
+  init(){
+    this.round=1;this.score=0;this.el=0;clearInterval(this.iv);
+    document.getElementById('ts-sc').textContent='0';document.getElementById('ts-rn').textContent='1';document.getElementById('ts-badge').textContent='Rd 1';
+    this.nextRound();
+  },
+  nextRound(){
+    this.cur=this.passages[Math.floor(Math.random()*this.passages.length)];
+    document.getElementById('ts-tw').textContent=this.cur.w.toUpperCase();
+    clearInterval(this.iv);this.el=0;document.getElementById('ts-tm').textContent='0.0';
+    this.iv=setInterval(()=>{this.el=+(this.el+.1).toFixed(1);document.getElementById('ts-tm').textContent=this.el.toFixed(1);},100);
+    const bl=document.getElementById('ts-block');bl.innerHTML='';
+    this.cur.t.split(' ').forEach(raw=>{
+      const clean=raw.toLowerCase().replace(/[^a-z]/g,'');
+      const sp=document.createElement('span');sp.className='sw';sp.textContent=raw+' ';
+      sp.onclick=()=>{
+        if(clean===this.cur.w){
+          sp.classList.add('hit');clearInterval(this.iv);this.score++;document.getElementById('ts-sc').textContent=this.score;
+          const p=lp();if(this.score>p.ts){p.ts=this.score;p.games=(p.games||0)+1;sp(p);}
+          this.round++;document.getElementById('ts-rn').textContent=this.round;document.getElementById('ts-badge').textContent='Rd '+this.round;
+          setTimeout(()=>this.nextRound(),800);
+        } else {sp.classList.add('miss');setTimeout(()=>sp.classList.remove('miss'),500);}
+      };
+      bl.appendChild(sp);
+    });
+  },
+  stop(){clearInterval(this.iv);}
+};
+
+// Spacebar shortcut
+document.addEventListener('keydown',e=>{
+  if(e.code!=='Space'||e.target.tagName==='INPUT')return;
+  const cs=document.querySelector('.screen.active');if(!cs)return;
+  if(cs.id==='s-rsvp'){e.preventDefault();RSVP.togglePlay();}
+  if(cs.id==='s-karaoke'){e.preventDefault();KAR.togglePlay();}
+});
+
+// ── THEME SYSTEM ─────────────────────────────────────
+const THEMES={
+  dark: {bg:'#0d0d0d',card:'#161616',card2:'#1e1e1e',txt:'#f0f0f0',soft:'#666'},
+  light:{bg:'#f5f5f0',card:'#ffffff',card2:'#ebebeb',txt:'#111111',soft:'#888'},
+  sepia:{bg:'#f4ecd8',card:'#fffaf0',card2:'#f0e8d5',txt:'#5c4a32',soft:'#9b7e5a'},
+  night:{bg:'#0a0e1a',card:'#111827',card2:'#1f2937',txt:'#e0e7ff',soft:'#6b7280'},
+};
+function applyTheme(name){
+  const t=THEMES[name]||THEMES.dark;
+  const r=document.documentElement.style;
+  r.setProperty('--bg',t.bg);r.setProperty('--card',t.card);r.setProperty('--card2',t.card2);
+  r.setProperty('--txt',t.txt);r.setProperty('--soft',t.soft);
+  document.querySelectorAll('.theme-btn').forEach(b=>{
+    b.style.borderColor=b.dataset.theme===name?'var(--pri)':'#555';
+    b.style.outline=b.dataset.theme===name?'2px solid var(--pri)':'';
+  });
+  localStorage.setItem('bs_theme',name);
+}
+
+function setFontSize(sz){
+  document.documentElement.style.setProperty('--fs-read',sz+'px');
+  const lbl=document.getElementById('fs-lbl');if(lbl)lbl.textContent=sz;
+  localStorage.setItem('bs_fs',sz);
+}
+function setWordSize(sz){
+  document.documentElement.style.setProperty('--fs-word',sz+'px');
+  const lbl=document.getElementById('ws-lbl');if(lbl)lbl.textContent=sz;
+  localStorage.setItem('bs_ws',sz);
+}
+
+// ─ Load saved preferences ─
+(function(){
+  applyTheme(localStorage.getItem('bs_theme')||'dark');
+  const fs=localStorage.getItem('bs_fs')||'17';
+  const ws=localStorage.getItem('bs_ws')||'52';
+  const sl=document.getElementById('fs-slider');if(sl)sl.value=fs;
+  const wsl=document.getElementById('ws-slider');if(wsl)wsl.value=ws;
+  setFontSize(+fs);setWordSize(+ws);
+})();
+
+</script>
+</body>
+</html>
