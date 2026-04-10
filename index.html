@@ -7,14 +7,19 @@
 <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
 <script>pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js';</script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{--bg:#0d0d0d;--card:#161616;--card2:#1e1e1e;--txt:#f0f0f0;--soft:#777;--pri:#F5A623;--ok:#22C55E;--err:#EF4444;--r:14px;--fs-read:17px;--fs-word:52px}
-body{font-family:'Nunito',sans-serif;background:var(--bg);min-height:100vh;display:flex;justify-content:center;color:var(--txt)}
-#app{width:100%;max-width:480px;min-height:100vh;background:var(--bg);display:flex;flex-direction:column;overflow-x:hidden}
-.screen{display:none;flex-direction:column;flex:1;padding-bottom:76px}
+body{font-family:'Nunito',sans-serif;background:var(--bg);height:100vh;display:flex;justify-content:center;color:var(--txt);overflow:hidden}
+#app{width:100%;max-width:480px;height:100vh;background:var(--bg);display:flex;flex-direction:column;overflow:hidden;position:relative}
+.screen{display:none;flex-direction:column;flex:1;overflow:hidden;padding-bottom:76px}
 .screen.active{display:flex}
 .hidden{display:none!important}
+/* Reader screens need no bottom padding (bnav hidden) */
+#s-rsvp,#s-karaoke{padding-bottom:0}
+/* Scrollable content screens */
+#s-home,#s-rsvp-lib,#s-karaoke-lib,#s-settings,#s-profile,#s-schulte,#s-twin,#s-mem,#s-search{overflow-y:auto}
 
 /* TOP BAR */
 .gh{background:var(--card);padding:14px 18px;display:flex;align-items:center;gap:12px;border-bottom:1px solid #222;flex-shrink:0}
@@ -56,7 +61,7 @@ body{font-family:'Nunito',sans-serif;background:var(--bg);min-height:100vh;displ
 /* RSVP READER */
 #rsvp-viewport{flex:1;display:flex;align-items:center;justify-content:center;position:relative;background:#000}
 #rsvp-word{font-size:var(--fs-word,52px);font-weight:900;color:var(--txt);text-align:center;padding:20px;letter-spacing:2px;line-height:1.2}
-.rsvp-footer{background:var(--card);padding:16px 20px;border-top:1px solid #222}
+.rsvp-footer{background:var(--card);padding:12px 20px 16px;border-top:1px solid #222;flex-shrink:0}
 .prog-bar{height:3px;background:#222;border-radius:2px;margin-bottom:14px;overflow:hidden}
 .prog-fill{height:100%;background:var(--pri);border-radius:2px;transition:width .1s linear}
 .ctrl-row{display:flex;align-items:center;justify-content:center;gap:12px}
@@ -74,9 +79,12 @@ input[type=range]{width:100%;accent-color:var(--pri);cursor:pointer;height:4px;m
 .adj-val{font-size:14px;font-weight:800;color:var(--txt);min-width:70px;text-align:center}
 
 /* KARAOKE */
-#karaoke-text{flex:1;overflow-y:auto;padding:24px 20px;line-height:2;font-size:var(--fs-read,17px);color:var(--soft);scroll-behavior:smooth}
-.kw{cursor:pointer;border-radius:4px;padding:1px 2px;transition:color .08s;color:var(--soft)}
-.kw.kr{color:var(--soft);opacity:.7}.kw.ka{color:var(--txt);font-weight:900;background:rgba(245,166,35,.18);border-radius:4px}
+#karaoke-text{flex:1;overflow-y:auto;padding:20px 20px 12px;line-height:1.75;font-size:var(--fs-read,17px);color:var(--soft);scroll-behavior:smooth;-webkit-overflow-scrolling:touch;word-spacing:normal}
+/* ALL words pre-sized at bold width to prevent reflow */
+.kw{cursor:pointer;border-radius:3px;padding:0 1px;transition:color .1s,background .1s;color:var(--soft);display:inline;font-weight:700}
+.kw.kr{color:var(--soft);opacity:.5}
+/* Active word: only color + subtle bg — NO font-weight change = no layout shift */
+.kw.ka{color:var(--pri);background:rgba(245,166,35,.15);border-radius:3px;opacity:1}
 
 /* SCHULTE */
 #sch-timer{font-size:42px;font-weight:900;text-align:center;padding:10px 0}
@@ -138,11 +146,36 @@ select{border:none;font-family:Nunito;font-size:14px;font-weight:700;background:
 <body>
 <div id="app">
 
+<!-- ═══ LOGIN ═══ -->
+<div id="s-login" class="screen" style="padding-bottom:0">
+  <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:28px 24px;gap:10px">
+    <div style="font-size:64px">⚡</div>
+    <h1 style="font-size:28px;font-weight:900;background:linear-gradient(90deg,#F5A623,#f97316);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text">BrainSpeed</h1>
+    <p style="color:var(--soft);font-size:13px;margin-bottom:16px">Тренуй мозок. Читай швидше.</p>
+    <button onclick="signInGoogle()" style="width:100%;display:flex;align-items:center;justify-content:center;gap:12px;background:#fff;color:#222;border:none;border-radius:var(--r);padding:14px;font-family:Nunito;font-size:15px;font-weight:800;cursor:pointer">
+      <svg width="20" height="20" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.18 1.48-4.97 2.31-8.16 2.31-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>
+      Увійти через Google
+    </button>
+    <div style="width:100%;text-align:center;color:var(--soft);font-size:12px;margin:4px 0">або через Email</div>
+    <input id="auth-email" type="email" placeholder="Email" style="width:100%;background:var(--card);border:1px solid #333;border-radius:var(--r);padding:13px 16px;color:var(--txt);font-family:Nunito;font-size:15px;outline:none">
+    <input id="auth-pass" type="password" placeholder="Пароль" style="width:100%;background:var(--card);border:1px solid #333;border-radius:var(--r);padding:13px 16px;color:var(--txt);font-family:Nunito;font-size:15px;outline:none">
+    <div id="auth-err" style="color:var(--err);font-size:12px;min-height:18px;width:100%;text-align:center"></div>
+    <button onclick="signInEmail()" class="btn" style="width:100%">Увійти</button>
+    <button onclick="signUpEmail()" style="width:100%;background:var(--card);color:var(--txt);border:1px solid #333;border-radius:var(--r);padding:13px;font-family:Nunito;font-size:15px;font-weight:800;cursor:pointer">Зареєструватись</button>
+    <button onclick="skipAuth()" style="background:none;border:none;color:var(--soft);font-size:13px;cursor:pointer;font-family:Nunito;padding:8px">Продовжити без входу →</button>
+  </div>
+</div>
+
 <!-- ═══ HOME ═══ -->
 <div id="s-home" class="screen active">
   <div class="home-hdr">
-    <h1>⚡ BrainSpeed</h1>
-    <p>Speed Reading & Brain Training — all in one place</p>
+    <div style="display:flex;justify-content:space-between;align-items:flex-start">
+      <div>
+        <h1>⚡ BrainSpeed</h1>
+        <p>Speed Reading &amp; Brain Training</p>
+      </div>
+      <div id="home-streak" style="background:#2a1500;color:var(--pri);font-size:14px;font-weight:800;padding:8px 14px;border-radius:20px;cursor:pointer" onclick="nav('profile')">🔥 0</div>
+    </div>
   </div>
 
   <div class="cat">
@@ -156,6 +189,11 @@ select{border:none;font-family:Nunito;font-size:14px;font-weight:700;background:
       <button class="gc" onclick="nav('karaoke-lib')">
         <div class="ci" style="background:#0d2010"> </div>
         <div style="flex:1"><div class="ct">Karaoke Reader</div><div class="cd">Follow the highlighted word through text</div></div>
+        <div class="arr">›</div>
+      </button>
+      <button class="gc" onclick="nav('bookmarks')">
+        <div class="ci" style="background:#1a1500">📑</div>
+        <div style="flex:1"><div class="ct">Закладки</div><div class="cd">Виділені речення з усіх книжок</div></div>
         <div class="arr">›</div>
       </button>
     </div>
@@ -244,7 +282,7 @@ select{border:none;font-family:Nunito;font-size:14px;font-weight:700;background:
 
 <!-- ═══ KARAOKE READER ═══ -->
 <div id="s-karaoke" class="screen">
-  <div class="gh"><button class="bk" onclick="KAR.close()">←</button><span class="ght" id="kar-title">Book</span><span class="badge" id="kar-badge">250 WPM</span></div>
+  <div class="gh"><button class="bk" onclick="KAR.close()">←</button><span class="ght" id="kar-title">Book</span><span class="badge" id="kar-badge">250 WPM</span><button id="kar-bm-btn" class="ib" style="width:32px;height:32px;font-size:17px;margin-left:4px" onclick="KAR.addBookmark()" title="Додати закладку">📑</button></div>
   <div id="karaoke-text"></div>
   <div class="rsvp-footer">
     <div class="prog-bar"><div class="prog-fill" id="kar-prog" style="width:0%"></div></div>
@@ -276,6 +314,12 @@ select{border:none;font-family:Nunito;font-size:14px;font-weight:700;background:
       <button class="pb" id="kar-play" onclick="KAR.togglePlay()">▶</button>
     </div>
   </div>
+</div>
+
+<!-- ═══ BOOKMARKS ═══ -->
+<div id="s-bookmarks" class="screen">
+  <div class="gh"><button class="bk" onclick="nav('home')">←</button><span class="ght">📑 Закладки</span></div>
+  <div id="bm-list" style="padding:16px;overflow-y:auto;flex:1"></div>
 </div>
 
 <!-- ═══ SCHULTE ═══ -->
@@ -361,17 +405,32 @@ select{border:none;font-family:Nunito;font-size:14px;font-weight:700;background:
 
 <!-- ═══ PROFILE ═══ -->
 <div id="s-profile" class="screen">
-  <div class="phead"><div class="av">🧠</div><h2 style="font-size:22px;font-weight:900">Brain Athlete</h2><p style="font-size:13px;color:var(--soft);margin-top:4px">Keep training daily!</p></div>
+  <div class="phead">
+    <div class="av">🧠</div>
+    <h2 style="font-size:22px;font-weight:900" id="prf-username">Brain Athlete</h2>
+    <p style="font-size:13px;color:rgba(255,255,255,.6);margin-top:4px">Training every day!</p>
+    <button onclick="doSignOut()" style="margin-top:12px;background:rgba(255,255,255,.15);border:none;border-radius:10px;padding:8px 18px;color:#fff;font-family:Nunito;font-size:13px;font-weight:700;cursor:pointer">Вийти →</button>
+  </div>
   <div class="sgrid">
     <div class="sc2"><div class="ic" style="color:#F97316">⏱</div><div class="vl" id="prf-sch">—</div><div class="lb">Best Schulte (s)</div></div>
     <div class="sc2"><div class="ic" style="color:#8B5CF6">🔤</div><div class="vl" id="prf-tw">0</div><div class="lb">Best Twin Score</div></div>
     <div class="sc2"><div class="ic" style="color:#3B82F6">🧩</div><div class="vl" id="prf-nm">3</div><div class="lb">Memory Digits</div></div>
     <div class="sc2"><div class="ic" style="color:#10B981">🔍</div><div class="vl" id="prf-ts">0</div><div class="lb">Search Score</div></div>
-    <div class="sc2" style="grid-column:1/-1"><div class="ic">🔥</div><div class="vl" id="prf-games">0</div><div class="lb">Games Played</div></div>
+    <div class="sc2"><div class="ic">🔥</div><div class="vl" id="prf-streak">0</div><div class="lb">Day Streak</div></div>
+    <div class="sc2"><div class="ic">🎮</div><div class="vl" id="prf-games">0</div><div class="lb">Games Played</div></div>
   </div>
 </div>
 
 </div><!-- #app -->
+
+<!-- QUEST OVERLAY -->
+<div id="quest-overlay" style="display:none;position:fixed;top:0;left:50%;transform:translateX(-50%);width:100%;max-width:480px;height:100vh;background:rgba(0,0,0,.92);z-index:9999;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:40px;gap:14px">
+  <div style="font-size:80px;animation:pop .5s ease">🎉</div>
+  <p style="font-size:34px;font-weight:900;color:var(--pri)">5 Хвилин!</p>
+  <p style="font-size:18px;color:#fff;font-weight:700">Денну норму виконано!</p>
+  <p style="font-size:30px">🔥 Стрик +1 день</p>
+  <button onclick="document.getElementById('quest-overlay').style.display='none'" class="btn" style="margin-top:16px;padding:14px 40px;font-size:16px">Чудово! ✓</button>
+</div>
 
 <div id="bnav">
   <button class="nb active" id="nb-home" onclick="nav('home')">
@@ -387,12 +446,11 @@ select{border:none;font-family:Nunito;font-size:14px;font-weight:700;background:
 
 <script>
 // ── CORE NAV ─────────────────────────────────────────
-const ALL=['home','rsvp-lib','rsvp','karaoke-lib','karaoke','schulte','twin','mem','search','settings','profile'];
+const ALL=['home','rsvp-lib','rsvp','karaoke-lib','karaoke','bookmarks','schulte','twin','mem','search','settings','profile'];
 function nav(id){
   ALL.forEach(s=>{const e=document.getElementById('s-'+s);if(e)e.classList.remove('active');});
   document.getElementById('s-'+id).classList.add('active');
   ['home','settings','profile'].forEach(n=>document.getElementById('nb-'+n).classList.toggle('active',n===id));
-  // Hide bottom nav in reader screens (they have their own footer)
   const readerScreens=['rsvp','karaoke'];
   document.getElementById('bnav').style.display=readerScreens.includes(id)?'none':'flex';
   if(id==='schulte')Sch.init();
@@ -402,6 +460,9 @@ function nav(id){
   if(id==='profile')renderP();
   if(id==='rsvp-lib')renderLib('rsvp');
   if(id==='karaoke-lib')renderLib('karaoke');
+  if(id==='bookmarks')renderBookmarks();
+  const activeScreens=['rsvp','karaoke','schulte','twin','mem','search'];
+  if(activeScreens.includes(id)) startQuestTimer();
 }
 function goBack(g){
   if(g==='schulte')Sch.stop();
@@ -511,6 +572,7 @@ const KAR={
   words:[],idx:0,playing:false,timer:null,wpm:250,chunk:1,
   open(book){
     document.getElementById('kar-title').textContent=book.title;
+    this.bookTitle=book.title;
     document.getElementById('kar-wpm').value=250;
     document.getElementById('kar-chunk').value=1;
     document.getElementById('kar-wpm-lbl').textContent=250;
@@ -522,9 +584,11 @@ const KAR={
   build(text){
     const ct=document.getElementById('karaoke-text');ct.innerHTML='';
     this.words=[];
-    text.replace(/\r\n/g,'\n').split(/\n\s*\n/).forEach(para=>{
+    // Normalize: single newlines → space; 2+ newlines → paragraph break
+    const clean=text.replace(/\r\n/g,'\n').replace(/\n{3,}/g,'\n\n').replace(/([^\n])\n([^\n])/g,'$1 $2').trim();
+    clean.split(/\n\n+/).forEach(para=>{
       const ws=para.trim().split(/\s+/).filter(w=>w.length>0);if(!ws.length)return;
-      const p=document.createElement('p');p.style.cssText='margin:0 0 1.2em';
+      const p=document.createElement('p');p.style.cssText='margin:0 0 0.6em';
       ws.forEach((w,i)=>{
         const sp=document.createElement('span');sp.className='kw';sp.textContent=w;sp.dataset.i=this.words.length;
         sp.onclick=()=>this.jumpTo(+sp.dataset.i);
@@ -550,6 +614,16 @@ const KAR={
   adjWpm(d){this.setWpm(this.wpm+d);},
   setChunk(v){this.chunk=Math.max(1,Math.min(10,v));document.getElementById('kar-chunk').value=this.chunk;document.getElementById('kar-chunk-lbl').textContent=this.chunk;},
   adjChunk(d){this.setChunk(this.chunk+d);},
+  addBookmark(){
+    if(!this.words.length)return;
+    const start=Math.max(0,this.idx-2);const end=Math.min(this.words.length,this.idx+20);
+    const sentence=this.words.slice(start,end).map(w=>w.textContent).join(' ');
+    const marks=JSON.parse(localStorage.getItem('bs_marks')||'[]');
+    marks.unshift({id:Date.now(),book:this.bookTitle||'Book',wordIdx:this.idx,text:sentence,date:new Date().toLocaleDateString('uk-UA')});
+    localStorage.setItem('bs_marks',JSON.stringify(marks.slice(0,200)));
+    const btn=document.getElementById('kar-bm-btn');
+    if(btn){btn.textContent='✅';setTimeout(()=>btn.textContent='📑',1200);}
+  },
   close(){this.stop();nav('karaoke-lib');}
 };
 document.getElementById('kar-wpm').addEventListener('input',e=>KAR.setWpm(+e.target.value));
@@ -714,6 +788,218 @@ document.addEventListener('keydown',e=>{
   if(cs.id==='s-rsvp'){e.preventDefault();RSVP.togglePlay();}
   if(cs.id==='s-karaoke'){e.preventDefault();KAR.togglePlay();}
 });
+
+// ─ BOOKMARKS ─
+function renderBookmarks(){
+  const marks=JSON.parse(localStorage.getItem('bs_marks')||'[]');
+  const el=document.getElementById('bm-list');if(!el)return;el.innerHTML='';
+  if(!marks.length){
+    el.innerHTML='<div class="placeholder">Немає закладок.<br>Під час читання натисніть 📑 щоб зберегти речення.</div>';
+    return;
+  }
+  marks.forEach(m=>{
+    const div=document.createElement('div');
+    div.style.cssText='background:var(--card);border:1px solid #222;border-radius:var(--r);padding:14px 16px;margin-bottom:10px';
+    div.innerHTML=`
+      <div style="font-size:11px;color:var(--soft);margin-bottom:8px;display:flex;justify-content:space-between">
+        <span style="font-weight:800;color:var(--pri)">📚 ${m.book}</span>
+        <span>${m.date}</span>
+      </div>
+      <div style="font-size:15px;color:var(--txt);line-height:1.65;font-style:italic">
+        “${m.text}…”
+      </div>
+      <div style="margin-top:10px;display:flex;gap:8px;align-items:center">
+        <button style="background:var(--pri);color:#000;border:none;border-radius:8px;padding:7px 14px;font-family:Nunito;font-size:12px;font-weight:800;cursor:pointer" onclick="openBookmark('+m.id+')}',${m.wordIdx})">Читати з цього місця →</button>
+        <button style="background:#2a1010;color:var(--err);border:none;border-radius:8px;padding:7px 10px;font-family:Nunito;font-size:13px;cursor:pointer" onclick="delBookmark(${m.id})">🗑</button>
+      </div>`;
+    el.appendChild(div);
+  });
+}
+function delBookmark(id){
+  const marks=JSON.parse(localStorage.getItem('bs_marks')||'[]').filter(m=>m.id!==id);
+  localStorage.setItem('bs_marks',JSON.stringify(marks));
+  renderBookmarks();
+}
+function openBookmark(bmId){
+  const marks=JSON.parse(localStorage.getItem('bs_marks')||'[]');
+  const mark=marks.find(m=>m.id===bmId);
+  if(!mark){alert('\u0417\u0430\u043a\u043b\u0430\u0434\u043a\u0443 \u043d\u0435 \u0437\u043d\u0430\u0439\u0434\u0435\u043d\u043e.');return;}
+  const book=sharedLib.find(b=>b.title===mark.book);
+  if(!book){alert('\u041a\u043d\u0438\u0436\u043a\u0443 \u043d\u0435 \u0437\u043d\u0430\u0439\u0434\u0435\u043d\u043e. \u0417\u0430\u0432\u0430\u043d\u0442\u0430\u0436\u0442\u0435 \u0457\u0457 \u0437\u043d\u043e\u0432\u0443.');return;}
+  KAR.open(book);
+  setTimeout(()=>KAR.jumpTo(mark.wordIdx),150);
+}
+
+// ──────────────────────────────────────────────────────────
+// SUPABASE AUTH + CLOUD SYNC
+// ──────────────────────────────────────────────────────────
+//
+// КРОК 1: Зайдіть на supabase.com → New Project (безкоштовно)
+// КРОК 2: Settings → API → скопіюйте Project URL та anon key
+// КРОК 3: Замініть порожні рядки нижче своїми ключами
+// КРОК 4: SQL Editor → виконайте:
+//
+// CREATE TABLE profiles (
+//   id UUID PRIMARY KEY,
+//   username TEXT,
+//   streak_days INT DEFAULT 0,
+//   last_active TEXT DEFAULT '',
+//   is_premium BOOL DEFAULT FALSE
+// );
+// CREATE TABLE training_results (
+//   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+//   user_id UUID, game TEXT, level INT,
+//   score INT, won BOOL,
+//   created_at TIMESTAMPTZ DEFAULT NOW()
+// );
+// ──────────────────────────────────────────────────────────
+const SB_URL = '';  // ← вставте ваш Project URL
+const SB_KEY = '';  // ← вставте ваш anon key
+const SB = (SB_URL && SB_KEY && window.supabase)
+  ? window.supabase.createClient(SB_URL, SB_KEY) : null;
+
+let currentUser = null;
+
+// Auth state listener
+if (SB) {
+  SB.auth.getSession().then(({ data: { session } }) => {
+    if (session) { currentUser = session.user; _onLogin(currentUser); }
+    else { _showLogin(); }
+  });
+  SB.auth.onAuthStateChange((event, session) => {
+    currentUser = session?.user || null;
+    if (currentUser) _onLogin(currentUser);
+    else if (event === 'SIGNED_OUT') _showLogin();
+  });
+}
+
+function _onLogin(user) {
+  document.getElementById('s-login').classList.remove('active');
+  document.getElementById('bnav').style.display = 'flex';
+  nav('home');
+  loadCloudProfile(user.id);
+  checkStreak(user.id);
+}
+function _showLogin() {
+  ALL.forEach(s=>{const e=document.getElementById('s-'+s);if(e)e.classList.remove('active');});
+  document.getElementById('s-login').classList.add('active');
+  document.getElementById('bnav').style.display = 'none';
+}
+
+// ─ Auth functions ─
+async function signInGoogle() {
+  if (!SB) { skipAuth(); return; }
+  setAuthErr('');
+  const { error } = await SB.auth.signInWithOAuth({
+    provider: 'google',
+    options: { redirectTo: location.href }
+  });
+  if (error) setAuthErr(error.message);
+}
+async function signInEmail() {
+  if (!SB) { skipAuth(); return; }
+  setAuthErr('Завантаження...');
+  const { error } = await SB.auth.signInWithPassword({
+    email: document.getElementById('auth-email').value,
+    password: document.getElementById('auth-pass').value
+  });
+  setAuthErr(error ? error.message : '');
+}
+async function signUpEmail() {
+  if (!SB) { skipAuth(); return; }
+  setAuthErr('Реєстрація...');
+  const { error } = await SB.auth.signUp({
+    email: document.getElementById('auth-email').value,
+    password: document.getElementById('auth-pass').value
+  });
+  setAuthErr(error ? error.message : '✅ Перевірте Email для підтвердження!');
+}
+function skipAuth() {
+  document.getElementById('s-login').classList.remove('active');
+  document.getElementById('bnav').style.display = 'flex';
+  nav('home');
+}
+async function doSignOut() {
+  if (SB) await SB.auth.signOut();
+  currentUser = null;
+  _showLogin();
+}
+function setAuthErr(m) {
+  const el = document.getElementById('auth-err');
+  if (el) el.textContent = m;
+}
+
+// ─ Cloud Profile ─
+async function loadCloudProfile(uid) {
+  if (!SB) return;
+  let { data } = await SB.from('profiles').select('*').eq('id', uid).single();
+  if (!data) {
+    const uname = currentUser?.email?.split('@')[0] || 'Reader';
+    await SB.from('profiles').insert({ id: uid, username: uname, streak_days: 0, last_active: '' });
+    data = { username: uname, streak_days: 0 };
+  }
+  _updateProfileUI(data);
+}
+function _updateProfileUI(data) {
+  const set = (id, val) => { const el = document.getElementById(id); if(el) el.textContent = val; };
+  set('prf-username', data.username || 'Reader');
+  set('prf-streak', data.streak_days || 0);
+  set('home-streak', '🔥 ' + (data.streak_days || 0));
+}
+
+// ─ Streak System ─
+async function checkStreak(uid) {
+  if (!SB) return;
+  const { data } = await SB.from('profiles').select('streak_days,last_active,username').eq('id', uid).single();
+  if (!data) return;
+  const today = new Date().toDateString();
+  const yesterday = new Date(Date.now() - 86400000).toDateString();
+  if (data.last_active === today) { _updateProfileUI(data); return; }
+  const newStreak = data.last_active === yesterday ? (data.streak_days || 0) + 1 : 1;
+  await SB.from('profiles').update({ streak_days: newStreak, last_active: today }).eq('id', uid);
+  _updateProfileUI({ ...data, streak_days: newStreak });
+}
+
+// ─ 5-Minute Quest ─
+let _qSec = 0;
+let _qDone = localStorage.getItem('bsq_' + new Date().toDateString()) === '1';
+let _qIv = null;
+
+function startQuestTimer() {
+  if (_qDone || _qIv) return;
+  _qIv = setInterval(() => {
+    _qSec++;
+    // Show progress in home streak badge (subtle)
+    const min = Math.floor(_qSec / 60);
+    if (currentUser || true) {
+      const sb = document.getElementById('home-streak');
+      if (sb && _qSec < 300) sb.title = `Квест: ${min}/5 хв`;
+    }
+    if (_qSec >= 300) {
+      clearInterval(_qIv); _qIv = null;
+      _qDone = true;
+      localStorage.setItem('bsq_' + new Date().toDateString(), '1');
+      if (currentUser) checkStreak(currentUser.id);
+      // Show celebration
+      const ov = document.getElementById('quest-overlay');
+      if (ov) ov.style.display = 'flex';
+    }
+  }, 1000);
+}
+
+// ─ Save Training to Cloud ─
+async function cloudSaveTraining(game, level, score, won) {
+  if (!SB || !currentUser) return;
+  await SB.from('training_results').insert({
+    user_id: currentUser.id,
+    game, level, score, won
+  }).then(() => {}).catch(() => {}); // silent fail
+}
+// Call this after each game win/loss — example integration:
+// In Sch.win(): cloudSaveTraining('schulte', 1, elapsed, true);
+// In TW.check() correct: cloudSaveTraining('twin_words', 1, this.score, true);
+// In NM.submit() correct: cloudSaveTraining('number_memory', this.lv, 0, true);
+
 
 // ── THEME SYSTEM ─────────────────────────────────────
 const THEMES={
